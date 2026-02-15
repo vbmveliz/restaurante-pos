@@ -140,128 +140,83 @@ $sel=$p['id']==$c['plato_id']?'selected':'';
 <script>
 let nuevaCantidad = 1;
 
-/* ================= NUEVOS + - ================= */
+/* ====== CONTADOR NUEVO PLATO ====== */
+$("#nuevo-mas").click(() => {
+    $("#nuevo-cantidad").text(++nuevaCantidad);
+});
 
-document.getElementById("nuevo-mas").onclick = () => {
-    nuevaCantidad++;
-    document.getElementById("nuevo-cantidad").innerText = nuevaCantidad;
-};
+$("#nuevo-menos").click(() => {
+    nuevaCantidad = Math.max(1, nuevaCantidad - 1);
+    $("#nuevo-cantidad").text(nuevaCantidad);
+});
 
-document.getElementById("nuevo-menos").onclick = () => {
-    if (nuevaCantidad > 1) {
-        nuevaCantidad--;
-        document.getElementById("nuevo-cantidad").innerText = nuevaCantidad;
-    }
-};
-
-/* ================= TOTAL ================= */
-
-function actualizarTotal() {
+/* ====== TOTAL INSTANTÁNEO ====== */
+function actualizarTotal(){
     let total = 0;
-    document.querySelectorAll(".subtotal").forEach(el => {
-        total += parseFloat(el.innerText.replace("S/", "")) || 0;
+    $(".subtotal").each(function(){
+        total += parseFloat($(this).text().replace("S/","")) || 0;
     });
-    document.getElementById("total").innerText = "S/" + total.toFixed(2);
+    $("#total").text("S/" + total.toFixed(2));
 }
 
-/* ================= AGREGAR PLATO ================= */
-
-$("#btn-agregar-plato").click(function () {
+/* ====== AGREGAR PLATO RÁPIDO ====== */
+$("#btn-agregar-plato").click(() => {
 
     const platoId = $("#select-nuevo-plato").val();
-    if (!platoId) return alert("Selecciona un plato");
+    if(!platoId) return alert("Selecciona un plato");
 
     $.post("agregar_consumo.php", {
         venta_id: <?= $venta_id ?>,
         mesa_id: <?= $mesa_id ?>,
         plato_id: platoId,
         cantidad: nuevaCantidad
-    }, function (res) {
+    }, res => {
 
-        if (res.status === "success") {
-            $("#lista-consumos").append(res.html);
+        const data = JSON.parse(res);
+
+        if(data.status === "success"){
+            $("#lista-consumos").append(data.html);
             actualizarTotal();
 
             nuevaCantidad = 1;
             $("#nuevo-cantidad").text(1);
+            $("#select-nuevo-plato").val("");
         }
-
-    }, "json");
+    });
 });
 
-/* ================= MODIFICAR CANTIDAD EXISTENTE ================= */
+/* ====== + y - INSTANTÁNEO ====== */
+$(document).on("click", ".btn-mas, .btn-menos", function(){
 
-$(document).on("click", ".btn-mas, .btn-menos", function () {
-
-    const consumoId = $(this).data("consumo-id");
-    const cantidadElem = $(`.cantidad-texto[data-consumo-id="${consumoId}"]`);
+    const id = $(this).data("consumo-id");
+    const fila = $(`tr[data-id="${id}"]`);
+    const cantidadElem = fila.find(".cantidad-texto");
 
     let cantidad = parseInt(cantidadElem.text());
+    const precio = parseFloat(fila.find("td:nth-child(3)").text().replace("S/",""));
 
-    if ($(this).hasClass("btn-mas")) {
-        cantidad++;
-    } else {
-        cantidad--;
-        if (cantidad < 1) cantidad = 1;
-    }
+    cantidad = $(this).hasClass("btn-mas") ? cantidad + 1 : cantidad - 1;
+    if(cantidad < 1) cantidad = 1;
 
-    $.post("editar_consumo.php", {
-        id: consumoId,
-        cantidad: cantidad
-    }, function (res) {
+    /* UI inmediata */
+    cantidadElem.text(cantidad);
 
-        if (res.status === "success") {
+    const subtotal = precio * cantidad;
+    fila.find(".subtotal").text("S/" + subtotal.toFixed(2));
+    actualizarTotal();
 
-            cantidadElem.text(cantidad);
-
-            const fila = $(`tr[data-id="${consumoId}"]`);
-            fila.find(".subtotal").text("S/" + parseFloat(res.subtotal).toFixed(2));
-
-            actualizarTotal();
-        }
-
-    }, "json");
+    /* DB en segundo plano */
+    $.post("editar_consumo.php", { id, cantidad });
 });
 
-/* ================= CAMBIAR PLATO ================= */
-
-$(document).on("change", ".select-plato", function () {
-
-    const consumoId = $(this).data("consumo-id");
-    const platoId = $(this).val();
-
-    $.post("editar_consumo.php", {
-        id: consumoId,
-        plato_id: platoId
-    }, function (res) {
-
-        if (res.status === "success") {
-
-            const fila = $(`tr[data-id="${consumoId}"]`);
-
-            fila.find("td:nth-child(3)").text("S/" + parseFloat(res.precio).toFixed(2));
-            fila.find(".subtotal").text("S/" + parseFloat(res.subtotal).toFixed(2));
-
-            actualizarTotal();
-        }
-
-    }, "json");
-});
-
-/* ================= ELIMINAR ================= */
-
-$(document).on("submit", ".formEliminar", function (e) {
+/* ====== ELIMINAR ====== */
+$(document).on("submit",".formEliminar",function(e){
     e.preventDefault();
+    const fila = $(this).closest("tr");
 
-    const form = $(this);
-
-    $.post("eliminar_consumo.php", form.serialize(), function (res) {
-
-        if (res.trim() === "ok") {
-            form.closest("tr").remove();
-            actualizarTotal();
-        }
-
+    $.post("eliminar_consumo.php", $(this).serialize(), () => {
+        fila.remove();
+        actualizarTotal();
     });
 });
 </script>

@@ -242,3 +242,215 @@ tfoot th {
 .editar-acciones .btn {
     flex: 1;
 }
+
+/* ==========================
+   MENSAJES DE SISTEMA
+========================== */
+
+.mensaje-card {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.08);
+    max-width: 520px;
+    margin: 80px auto;
+    text-align: center;
+    font-size: 18px;
+}
+
+.mensaje-card.ok {
+    border-top: 6px solid #4CAF50;
+    color: #2e7d32;
+}
+
+.mensaje-card.error {
+    border-top: 6px solid #e53935;
+    color: #c62828;
+}
+
+.mensaje-card p {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* ==========================
+   TARJETAS DE MESAS PRO
+========================== */
+
+.mesas{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:28px;
+    margin-top:30px;
+}
+
+.mesa-card{
+    background:white;
+    padding:24px;
+    border-radius:18px;
+    box-shadow:0 10px 22px rgba(0,0,0,.08);
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    position:relative;
+}
+
+.mesa-card.ocupada{ border-top:6px solid #e53935; }
+.mesa-card.libre{ border-top:6px solid #4CAF50; }
+
+.mesa-card h3{
+    margin:0;
+    font-size:22px;
+}
+
+.badge{
+    align-self:center;
+    padding:6px 14px;
+    border-radius:20px;
+    font-weight:700;
+    font-size:13px;
+}
+
+.mesa-card.ocupada .badge{
+    background:#fdecea;
+    color:#e53935;
+}
+
+.mesa-card.libre .badge{
+    background:#e8f5e9;
+    color:#2e7d32;
+}
+
+.mesa-card form{
+    margin-top:8px;
+}
+
+.mesa-card .btn{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+}
+
+/* acciones separadas */
+.acciones{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:10px;
+}
+
+.acciones .btn-mini{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:8px;
+    border-radius:10px;
+}
+
+/* icon button delete */
+.acciones .btn-danger{
+    background:#e53935;
+}
+
+/* hover elegante */
+.mesa-card:hover{
+    transform:translateY(-4px);
+    transition:.2s ease;
+}
+
+/* FORM NUEVA MESA PRO */
+
+.form-nueva{
+    background:white;
+    padding:18px;
+    border-radius:14px;
+    margin-bottom:30px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    box-shadow:0 6px 16px rgba(0,0,0,.08);
+    max-width:480px;
+}
+
+.form-nueva input{
+    flex:1;
+    padding:12px 14px;
+    border-radius:10px;
+    border:1px solid #dcdcdc;
+    font-size:15px;
+    outline:none;
+    transition:.2s ease;
+}
+
+.form-nueva input::placeholder{
+    color:#aaa;
+}
+
+.form-nueva input:focus{
+    border-color:#4CAF50;
+    box-shadow:0 0 0 3px rgba(76,175,80,.15);
+}
+
+.form-nueva button{
+    padding:12px 18px;
+    border-radius:10px;
+    font-weight:600;
+}
+
+/* Responsive */
+
+@media (max-width:600px){
+    .form-nueva{
+        flex-direction:column;
+    }
+
+    .form-nueva button{
+        width:100%;
+    }
+}
+
+.alert{
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:15px;
+    font-weight:600;
+}
+
+.alert.ok{
+    background:#e8f5e9;
+    color:#2e7d32;
+}
+
+.alert.error{
+    background:#fdecea;
+    color:#c62828;
+}
+
+/* Flash message animado */
+
+.flash-message{
+    width:100%;
+    text-align:center;
+    padding:14px;
+    font-weight:600;
+    animation:fadeIn .3s ease;
+}
+
+.flash-message.success{
+    background:#e8f5e9;
+    color:#2e7d32;
+}
+
+.flash-message.error{
+    background:#fdecea;
+    color:#c62828;
+}
+
+@keyframes fadeIn{
+    from{ opacity:0; transform:translateY(-10px); }
+    to{ opacity:1; transform:translateY(0); }
+}

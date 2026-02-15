@@ -23,33 +23,7 @@ ORDER BY m.id
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestión de Mesas</title>
-<link rel="stylesheet" href="estilos/estilos.css?v=1000">
-<style>
-.form-nueva{
-    background:white;
-    padding:15px;
-    border-radius:12px;
-    margin-bottom:25px;
-    display:flex;
-    gap:10px;
-    box-shadow:0 6px 14px rgba(0,0,0,.08);
-}
-.form-nueva input{
-    flex:1;
-    padding:10px;
-    border-radius:8px;
-    border:1px solid #ccc;
-}
-.acciones{
-    margin-top:10px;
-    display:flex;
-    gap:8px;
-}
-.btn-mini{
-    padding:6px 10px;
-    font-size:14px;
-}
-</style>
+<link rel="stylesheet" href="estilos/estilos.css?v=11000">
 </head>
 <body>
 
@@ -57,9 +31,17 @@ ORDER BY m.id
     <h2>Gestión de Mesas</h2>
 </div>
 
+<?php if(isset($_GET['ok'])): ?>
+<div class="flash-message success">Mesa agregada correctamente.</div>
+<?php endif; ?>
+
+<?php if(isset($_GET['error']) && $_GET['error'] == 'duplicado'): ?>
+<div class="flash-message error">Esa mesa ya existe.</div>
+<?php endif; ?>
+
+
 <div class="contenedor">
 
-<!-- AGREGAR MESA -->
 <form class="form-nueva" action="agregar_mesa.php" method="post">
     <input type="text" name="nombre" placeholder="Nueva mesa (Ej: Mesa 4)" required>
     <button class="btn btn-success">Agregar</button>
@@ -68,7 +50,7 @@ ORDER BY m.id
 <div class="mesas">
 
 <?php while($m = $mesas->fetch_assoc()):
-    $ocupada = $m['consumos'] > 0;
+$ocupada = $m['consumos'] > 0;
 ?>
 
 <div class="mesa-card <?= $ocupada ? 'ocupada' : 'libre' ?>">
@@ -88,18 +70,15 @@ ORDER BY m.id
 
     <div class="acciones">
 
-        <!-- EDITAR -->
-        <form action="editar_mesa.php" method="get">
-            <input type="hidden" name="id" value="<?= $m['id'] ?>">
-            <button class="btn btn-mini">✏ Editar</button>
-        </form>
+        <a href="editar_mesa.php?id=<?= $m['id'] ?>" class="btn btn-mini">
+            ✏ Editar
+        </a>
 
-        <!-- ELIMINAR -->
-        <form action="eliminar_mesa.php" method="post"
-              onsubmit="return confirm('¿Eliminar mesa?')">
-            <input type="hidden" name="id" value="<?= $m['id'] ?>">
-            <button class="btn btn-danger btn-mini">🗑</button>
-        </form>
+        <a href="eliminar_mesa.php?id=<?= $m['id'] ?>" 
+           class="btn btn-danger btn-mini"
+           onclick="return confirm('¿Eliminar mesa?')">
+           🗑
+        </a>
 
     </div>
 
@@ -109,6 +88,27 @@ ORDER BY m.id
 
 </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
 
+    const msg = document.querySelector(".flash-message");
+    if(!msg) return;
+
+    /* ocultar en 5 segundos */
+    setTimeout(() => {
+        msg.style.transition = "opacity .6s ease, transform .6s ease";
+        msg.style.opacity = "0";
+        msg.style.transform = "translateY(-10px)";
+
+        setTimeout(() => msg.remove(), 600);
+    }, 5000);
+
+    /* limpiar URL para que no vuelva al refrescar */
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.pathname);
+    }
+
+});
+</script>
 </body>
 </html>
