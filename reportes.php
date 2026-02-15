@@ -1,14 +1,19 @@
 <?php
 require 'conexion.php';
 
-// Fecha de reporte (por defecto hoy)
-$fecha = isset($_GET['fecha']) ? $_GET['fecha'] : date('Y-m-d');
+$cn = (new conexion())->conectar();
 
-// Totales por medio de pago
-$stmt = $conn->prepare("
-    SELECT medio_pago, SUM(total) as total
+$fecha = $_POST['fecha'] ?? date('Y-m-d');
+
+/* =========================
+   TOTALES POR MEDIO DE PAGO
+========================= */
+$stmt = $cn->prepare("
+    SELECT medio_pago, SUM(total) total
     FROM ventas
     WHERE DATE(fecha) = ?
+      AND medio_pago IS NOT NULL
+      AND total > 0
     GROUP BY medio_pago
 ");
 $stmt->bind_param("s", $fecha);
@@ -24,143 +29,123 @@ $totales = [
 while($row = $res->fetch_assoc()){
     $totales[$row['medio_pago']] = $row['total'];
 }
-$total_general = array_sum($totales);
-$stmt->close();
 
-// Detalle de ventas del día con mesas
-$stmt2 = $conn->prepare("
-    SELECT v.id as venta_id, v.codigo, v.total, v.medio_pago, v.tipo, m.codigo as mesa
+$total_general = array_sum($totales);
+
+/* =========================
+   VENTAS DEL DÍA (SOLO CERRADAS)
+========================= */
+$stmt2 = $cn->prepare("
+    SELECT v.id, v.codigo, v.total, v.medio_pago, m.nombre AS mesa
     FROM ventas v
     JOIN mesas m ON v.mesa_id = m.id
     WHERE DATE(v.fecha) = ?
+      AND v.medio_pago IS NOT NULL
+      AND v.total > 0
     ORDER BY v.fecha ASC
 ");
 $stmt2->bind_param("s", $fecha);
 $stmt2->execute();
-$detalle = $stmt2->get_result();
-$stmt2->close();
-
-// Armar detalle de platillos por venta
-$ventas_platillos = [];
-while($v = $detalle->fetch_assoc()){
-    $venta_id = $v['venta_id'];
-    // Obtener platillos de cada venta
-    $stmt3 = $conn->prepare("
-    SELECT c.cantidad, c.precio, c.plato_id, p.nombre
-    FROM consumo c
-    JOIN platos p ON c.plato_id = p.id
-    WHERE c.venta_id = ?
-");
-$stmt3->bind_param("i", $v['venta_id']); 
-$stmt3->execute();
-$res3 = $stmt3->get_result();
-    $platillos = [];
-    while($p = $res3->fetch_assoc()){
-        $platillos[] = $p;
-    }
-    $stmt3->close();
-    $v['platillos'] = $platillos;
-    $ventas_platillos[] = $v;
-}
+$ventas = $stmt2->get_result();
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Reporte de Caja y Ventas - <?= $fecha ?></title>
-<style>
-body { font-family: Arial; margin:20px; }
-table { border-collapse: collapse; width: 90%; margin-bottom:20px; }
-th, td { border:1px solid #000; padding:5px; text-align:center; }
-th { background:#f2f2f2; }
-h1, h2, h3 { margin-bottom:5px; }
-.subtable { margin-top:5px; margin-bottom:10px; }
-.subtable th, .subtable td { font-size: 14px; padding:3px; }
-</style>
+<title>Reporte de Caja</title>
+<link rel="stylesheet" href="estilos/estilos.css">
 </head>
 <body>
 
-<h1>Reporte de Caja y Ventas</h1>
-<h2>Fecha: <?= $fecha ?></h2>
+<div class="topbar">
+<h2>📊 Reporte de Caja</h2>
+</div>
 
-<form method="get" style="margin-bottom:20px;">
-<label>Filtrar por fecha: </label>
-<input type="date" name="fecha" value="<?= $fecha ?>" required>
-<button>Ver</button>
+<div class="contenedor">
+
+<form method="post" class="filtro-fecha">
+    <input type="date" name="fecha" value="<?= $fecha ?>" required>
+    <button class="btn btn-success">Ver</button>
 </form>
 
-<h3>Totales por Medio de Pago</h3>
-<table>
-<tr>
-    <th>Medio de Pago</th>
-    <th>Total (S/)</th>
-</tr>
-<tr>
-    <td>Efectivo</td>
-    <td><?= number_format($totales['Efectivo'],2) ?></td>
-</tr>
-<tr>
-    <td>Tarjeta</td>
-    <td><?= number_format($totales['Tarjeta'],2) ?></td>
-</tr>
-<tr>
-    <td>Yape</td>
-    <td><?= number_format($totales['Yape'],2) ?></td>
-</tr>
-<tr>
-    <th>Total General</th>
-    <th><?= number_format($total_general,2) ?></th>
+<div class="card">
+
+<h3>Totales por medio de pago</h3>
+
+<table class="tabla">
+<tr><th>Medio</th><th>Total</th></tr>
+<tr><td>Efectivo</td><td>S/<?= number_format($totales['Efectivo'],2) ?></td></tr>
+<tr><td>Tarjeta</td><td>S/<?= number_format($totales['Tarjeta'],2) ?></td></tr>
+<tr><td>Yape</td><td>S/<?= number_format($totales['Yape'],2) ?></td></tr>
+<tr class="total-general">
+<td>TOTAL GENERAL</td>
+<td>S/<?= number_format($total_general,2) ?></td>
 </tr>
 </table>
 
-<h3>Detalle de Ventas</h3>
-<?php if(count($ventas_platillos) > 0): ?>
-<?php foreach($ventas_platillos as $v): ?>
-<table>
-<tr>
-    <th>ID Venta</th>
-    <th>Código</th>
-    <th>Mesa</th>
-    <th>Total (S/)</th>
-    <th>Medio de Pago</th>
-    <th>Tipo Documento</th>
-</tr>
-<tr>
-    <td><?= $v['venta_id'] ?></td>
-    <td><?= htmlspecialchars($v['codigo']) ?></td>
-    <td><?= htmlspecialchars($v['mesa']) ?></td>
-    <td><?= number_format($v['total'],2) ?></td>
-    <td><?= $v['medio_pago'] ?></td>
-    <td><?= $v['tipo'] ?></td>
-</tr>
-</table>
+</div>
 
-<?php if(count($v['platillos']) > 0): ?>
-<table class="subtable" border="1">
-<tr>
-    <th>Plato</th>
-    <th>Cantidad</th>
-    <th>Precio Unitario</th>
-    <th>Subtotal</th>
-</tr>
-<?php foreach($v['platillos'] as $p): ?>
-<tr>
-    <td><?= htmlspecialchars($p['nombre']) ?></td>
-    <td><?= $p['cantidad'] ?></td>
-    <td><?= number_format($p['precio'],2) ?></td>
-    <td><?= number_format($p['cantidad'] * $p['precio'],2) ?></td>
-</tr>
-<?php endforeach; ?>
-</table>
-<?php endif; ?>
-<hr>
-<?php endforeach; ?>
+<div class="card">
+
+<h3>Detalle de ventas</h3>
+
+<?php if($ventas->num_rows == 0): ?>
+    <p>No hay ventas cerradas este día.</p>
 <?php else: ?>
-<p>No hay ventas registradas para esta fecha.</p>
+
+<?php while($v = $ventas->fetch_assoc()): ?>
+
+<div class="venta-box">
+<strong>
+Mesa: <?= htmlspecialchars($v['mesa']) ?> |
+Código: <?= $v['codigo'] ?> |
+Pago: <?= $v['medio_pago'] ?> |
+Total: S/<?= number_format($v['total'],2) ?>
+</strong>
+
+<table class="tabla mini">
+<tr>
+<th>Plato</th>
+<th>Cant</th>
+<th>Precio</th>
+<th>Subtotal</th>
+</tr>
+
+<?php
+$cons = $cn->prepare("
+    SELECT p.nombre, c.cantidad, c.precio, c.subtotal
+    FROM consumo c
+    JOIN platos p ON p.id = c.plato_id
+    WHERE c.venta_id = ?
+");
+$cons->bind_param("i", $v['id']);
+$cons->execute();
+$resc = $cons->get_result();
+
+while($c = $resc->fetch_assoc()):
+?>
+
+<tr>
+<td><?= htmlspecialchars($c['nombre']) ?></td>
+<td><?= $c['cantidad'] ?></td>
+<td>S/<?= number_format($c['precio'],2) ?></td>
+<td>S/<?= number_format($c['subtotal'],2) ?></td>
+</tr>
+
+<?php endwhile; ?>
+
+</table>
+</div>
+
+<?php endwhile; ?>
+
 <?php endif; ?>
 
-<a href="index.php">← Volver al menú</a>
+</div>
 
+<a class="volver" href="index.php">⬅ Volver</a>
+
+</div>
 </body>
 </html>

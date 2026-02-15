@@ -127,11 +127,27 @@ $sel=$p['id']==$c['plato_id']?'selected':'';
 
 <tfoot>
 <tr>
-<th colspan="3">TOTAL</th>
-<th id="total">S/<?= number_format($total,2) ?></th>
-<th></th>
+    <th colspan="3">TOTAL</th>
+    <th id="total">S/<?= number_format($total,2) ?></th>
+    <th></th>
 </tr>
 </tfoot>
+</table>
+
+<!-- CAJA DE PAGO (fuera de la tabla) -->
+<form action="registrar_pago.php" method="post" class="pagar-box">
+    <input type="hidden" name="mesa_id" value="<?= $mesa_id ?>">
+
+    <label>Medio de Pago:</label>
+    <select name="medio_pago" required>
+        <option value="">Seleccione</option>
+        <option value="Efectivo">Efectivo</option>
+        <option value="Tarjeta">Tarjeta</option>
+        <option value="Yape">Yape</option>
+    </select>
+
+    <button class="btn btn-success">💳 Pagar</button>
+</form>
 </table>
 
 <a class="volver" href="index.php">⬅ Volver</a>
@@ -219,6 +235,36 @@ $(document).on("submit",".formEliminar",function(e){
         actualizarTotal();
     });
 });
+
+/* ====== CAMBIAR PLATO INSTANTÁNEO ====== */
+$(document).on("change", ".select-plato", function(){
+
+    const fila = $(this).closest("tr");
+    const id = $(this).data("consumo-id");
+    const platoId = $(this).val();
+    const cantidad = parseInt(fila.find(".cantidad-texto").text());
+
+    $.post("editar_consumo.php", {
+        id: id,
+        plato_id: platoId
+    }, function(res){
+
+        const data = JSON.parse(res);
+
+        if(data.status === "success"){
+
+            const nuevoPrecio = parseFloat(data.precio);
+            const nuevoSubtotal = nuevoPrecio * cantidad;
+
+            // UI inmediata
+            fila.find("td:nth-child(3)").text("S/" + nuevoPrecio.toFixed(2));
+            fila.find(".subtotal").text("S/" + nuevoSubtotal.toFixed(2));
+
+            actualizarTotal();
+        }
+    });
+});
+
 </script>
 
 </body>

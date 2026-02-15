@@ -1,9 +1,0 @@
-body{font-family:Arial;margin:20px}
-h1,h2{color:#333}
-table{border-collapse:collapse;width:100%;max-width:900px;margin-top:15px}
-th,td{border:1px solid #ddd;padding:10px;text-align:left}
-th{background:#f4f4f4}
-a{text-decoration:none;color:blue}
-a:hover{text-decoration:underline}
-.btn-agregar{display:inline-block;margin:5px;padding:6px 12px;background:#28a745;color:white;border-radius:3px}
-.btn-eliminar{color:red}
